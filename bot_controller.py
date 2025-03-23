@@ -19,7 +19,7 @@ class WhatsAppBotController(QObject):
         self.status_signal.emit("Initializing local LLM...")
         
         try:
-            model_name = "all-MiniLM-L6-v2-f16.gguf"
+            model_name = "mistral-7b-instruct-v0.1.Q4_0.gguf"
             self.status_signal.emit(f"Using model: {model_name}")
             
             if os.path.exists(model_name):
@@ -29,7 +29,7 @@ class WhatsAppBotController(QObject):
                 self.status_signal.emit("This may take several minutes...")
             
             self.model = GPT4All(model_name)
-            self.status_signal.emit("LLM initialized successfully!")
+            self.status_signal.emit(f"LLM initialized successfully! -- model loaded {model_name}")
             
             # Test the model
             test_response = self.model.generate("Hello", max_tokens=20)
@@ -113,7 +113,14 @@ class MessageMonitor(QThread):
         try:
             self.status_signal.emit("Generating response...")
             prompt = f"User: {message}\nAssistant:"
-            response = self.model.generate(prompt, max_tokens=100)
+            print("prompt: ", prompt)
+            response = self.model.generate(prompt, 
+                                           max_tokens=100,
+                                           temp=0.7,
+                                           top_k=40,
+                                           top_p=0.9,
+                                           repeat_penalty=1.1,
+                                           streaming=True)
             
             if not response:
                 return "I'm having trouble generating a response. Please try again."
