@@ -1,5 +1,4 @@
-selenium==4.17.2
-PySide6==6.6.1
-PySide6-WebEngine==6.6.1
-gpt4all==2.0.2
-webdriver_manager==4.0.1 
+selenium
+PySide6
+gpt4all
+webdriver_manager 

@@ -166,6 +166,42 @@ class WhatsAppBot(QMainWindow):
         
     def setup_url_bar(self, parent_layout):
         """Set up the URL bar"""
+        # Add system prompt input first
+        prompt_container = QWidget()
+        prompt_layout = QVBoxLayout(prompt_container)
+        prompt_layout.setContentsMargins(2, 2, 2, 2)
+        prompt_layout.setSpacing(2)
+        
+        prompt_label = QLabel("System Prompt:")
+        self.prompt_input = QTextEdit()
+        self.prompt_input.setPlaceholderText("Customize the bot's behavior")
+        self.prompt_input.setMaximumHeight(80)  # Limit height
+        self.prompt_input.setReadOnly(False)  # Ensure it's editable by default
+        
+        # Set the default prompt text if available
+        if hasattr(self, 'bot_controller') and self.bot_controller:
+            default_prompt = self.bot_controller.get_system_prompt()
+            if default_prompt:
+                self.prompt_input.setText(default_prompt)
+        
+        prompt_layout.addWidget(prompt_label)
+        prompt_layout.addWidget(self.prompt_input)
+        parent_layout.addWidget(prompt_container)
+        
+        # Add some styling to make it clear it's editable
+        self.prompt_input.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                padding: 5px;
+                background: white;
+            }
+            QTextEdit:focus {
+                border: 1px solid #0078D4;
+            }
+        """)
+        
+        # Original URL bar code
         url_container = QWidget()
         url_layout = QHBoxLayout(url_container)
         url_layout.setContentsMargins(2, 2, 2, 2)
@@ -255,6 +291,11 @@ class WhatsAppBot(QMainWindow):
             self.show_error("Please enter a phone number", "Missing Information")
             return
             
+        # Update system prompt before starting
+        system_prompt = self.prompt_input.toPlainText().strip()
+        self.bot_controller.set_system_prompt(system_prompt)
+        self.prompt_input.setReadOnly(True)  # Lock prompt editing while bot is running
+            
         if self.bot_controller.start_monitoring(phone_number):
             self.start_button.setEnabled(False)
             self.stop_button.setEnabled(True)
@@ -265,6 +306,7 @@ class WhatsAppBot(QMainWindow):
         self.bot_controller.stop_monitoring()
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
+        self.prompt_input.setReadOnly(False)  # Allow prompt editing when stopped
         self.log_status("Bot stopped")
         
     def init_llm(self):

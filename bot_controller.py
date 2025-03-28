@@ -17,12 +17,14 @@ class MessageWorker(QThread):
         self.is_processing = False
         self.token_count = 0
         self.max_tokens = 50  # Reduced from 100 for faster responses
+        self.system_prompt = None
         
-    def set_conversation(self, conversation):
+    def set_conversation(self, conversation, system_prompt):
         """Set conversation to process"""
         if self.is_processing:
             return
         self.conversation = conversation
+        self.system_prompt = system_prompt
         self.token_count = 0
         if not self.isRunning():
             self.start()
@@ -40,9 +42,9 @@ class MessageWorker(QThread):
             full_response = ""
             start_time = time.time()
             
-            # Optimize prompt for faster response
+            # Use provided system prompt
             prompt = f"""<|im_start|>system
-You are a WhatsApp assistant. Keep responses very concise (1-2 sentences).
+{self.system_prompt}
 <|im_start|>user
 Respond to this message: {self.conversation.split('\n')[-1]}
 <|im_start|>assistant
@@ -91,6 +93,9 @@ class WhatsAppBotController(QObject):
     error_signal = Signal(str, str)  # message, title
     progress_signal = Signal(int)    # For showing generation progress
     
+    DEFAULT_SYSTEM_PROMPT = """You are a WhatsApp assistant. Keep responses very concise (1-2 sentences).
+Respond naturally and be helpful while maintaining a friendly tone. Match the language style of the user."""
+    
     def __init__(self, web_view=None):
         super().__init__()
         self.model = None
@@ -101,6 +106,7 @@ class WhatsAppBotController(QObject):
         self.monitor_timer = QTimer()
         self.monitor_timer.timeout.connect(self._execute_message_monitor)
         self.monitor_timer.setInterval(15000)  # 15 seconds interval
+        self.system_prompt = self.DEFAULT_SYSTEM_PROMPT
             
     def init_llm(self):
         """Initialize the language model"""
@@ -201,7 +207,7 @@ class WhatsAppBotController(QObject):
                 # Process in worker thread if not already processing
                 if self.message_worker and not self.message_worker.is_processing:
                     self.progress_signal.emit(0)  # Reset progress
-                    self.message_worker.set_conversation(conversation)
+                    self.message_worker.set_conversation(conversation, self.system_prompt)
                 
         except Exception as e:
             self.status_signal.emit(f"Error processing messages: {str(e)}")
@@ -641,4 +647,16 @@ class WhatsAppBotController(QObject):
             except Exception as e:
                 self.status_signal.emit(f"Error in send callback: {str(e)}")
         
-        self.web_view.page().runJavaScript(js_code, 0, send_callback) 
+        self.web_view.page().runJavaScript(js_code, 0, send_callback)
+
+    def set_system_prompt(self, prompt):
+        """Set custom system prompt"""
+        if not prompt or not prompt.strip():
+            self.system_prompt = self.DEFAULT_SYSTEM_PROMPT
+        else:
+            self.system_prompt = prompt.strip()
+        self.status_signal.emit("System prompt updated")
+        
+    def get_system_prompt(self):
+        """Get current system prompt"""
+        return self.system_prompt 
