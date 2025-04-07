@@ -46,7 +46,7 @@ class MessageWorker(QThread):
             prompt = f"""<|im_start|>system
 {self.system_prompt}
 <|im_start|>user
-Respond to this message: {self.conversation.split('\n')[-1]}
+{self.conversation.split('\n')[-1]}
 <|im_start|>assistant
 """
             
@@ -125,7 +125,8 @@ Respond naturally and be helpful while maintaining a friendly tone. Match the la
                 self.status_signal.emit("Model file not found locally. Will download automatically.")
                 self.status_signal.emit("This may take several minutes...")
             
-            self.model = GPT4All(model_name)
+            # Initialize model with CPU backend
+            self.model = GPT4All(model_name, device='cpu')
             # Initialize message worker
             self.message_worker = MessageWorker(self.model)
             self.message_worker.response_ready.connect(self._send_message)
@@ -415,6 +416,10 @@ Respond naturally and be helpful while maintaining a friendly tone. Match the la
         """Send message in a non-blocking way"""
         if not response or not self.web_view:
             return
+            
+        # Clean up response by removing "assistant: " prefix if present
+        if response.lower().startswith("assistant:"):
+            response = response[len("assistant:"):].strip()
             
         self.status_signal.emit(f"Sending response: {response[:30]}...")
         # Inject JavaScript to send the message with improved selectors and input handling
