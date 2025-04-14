@@ -2,6 +2,8 @@
 
 A Python-based WhatsApp chat bot that uses GPT4All for automated responses.
 
+Demo to run the project [https://www.linkedin.com/posts/bilalahmed384_python-ai-chatbot-activity-7316546731112902656-aPbv?utm_source=share&utm_medium=member_desktop&rcm=ACoAADGxNmwBZ_et5WuburdmkbQWuBUF_pyd-20]
+
 ## Features
 
 - Automated responses using local GPT4All model
